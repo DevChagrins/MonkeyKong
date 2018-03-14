@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/not_so_simple_level.unity
+- path: Assets/Levels/TestLevel.unity
   isLoaded: 1
   isActive: 1
