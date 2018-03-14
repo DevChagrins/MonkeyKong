@@ -13,7 +13,6 @@ public class CameraFollow : MonoBehaviour
 
     private float mCameraWidth, mCameraHeight, mLevelMinX, mLevelMaxX;
 
-    // Use this for initialization
     void Start()
     {
         mCameraHeight = Camera.main.orthographicSize * 2f;
@@ -26,8 +25,8 @@ public class CameraFollow : MonoBehaviour
         mLevelMaxX = RightBounds.position.x - rightBoundsWidth - (mCameraWidth / 2f);
     }
 
-    // Update is called once per frame
-    void FixedUpdate()
+    //void FixedUpdate()
+    void LateUpdate() // When in doubt switch these...Unity has this weird bug to work out.
     {
         if(Target)
         {
