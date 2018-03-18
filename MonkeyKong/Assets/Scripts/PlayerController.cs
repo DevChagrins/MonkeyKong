@@ -82,14 +82,14 @@ public class PlayerController : MonoBehaviour
             mGrounded = false;
         }
 
-        if(!mGrounded)
+        mDeltaVelocity.y = mVelocity.y * Time.deltaTime;
+
+        if (!mGrounded)
         {
-            mPosition.y += mVelocity.y * Time.deltaTime;
+            mPosition.y += mDeltaVelocity.y;
 
             mVelocity.y -= Gravity * Time.deltaTime;
         }
-
-        mDeltaVelocity.y = mVelocity.y * Time.deltaTime;
 
         // Update position
         transform.localPosition = mPosition;
