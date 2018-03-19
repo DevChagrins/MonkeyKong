@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UDebug;
 
 public class PlayerController : MonoBehaviour
 {
@@ -29,8 +30,6 @@ public class PlayerController : MonoBehaviour
         mHalfPlayerSize = new Vector2();
         mHalfPlayerSize.y = mPlayerSize.y / 2f;
         mHalfPlayerSize.x = mPlayerSize.x / 2f;
-
-        Fall();
     }
 
     // Update is called once per frame
@@ -58,8 +57,10 @@ public class PlayerController : MonoBehaviour
         mPosition = transform.localPosition;
         Vector3 scale = transform.localScale;
 
+        // Reset x movement so it'll zero out if we don't need it
         mVelocity.x = 0f;
 
+        // Handle walking left/right
         if (mWalking)
         {
             if (mWalkingLeft)
@@ -72,24 +73,6 @@ public class PlayerController : MonoBehaviour
             {
                 mVelocity.x = MoveSpeed;
                 scale.x = 1;
-
-                /*Vector2 newPoint = new Vector2(mPosition.x + MoveSpeed * Time.deltaTime, mPosition.y);
-
-                float width = newPoint.x - mPosition.x + mPlayerWidth;
-                float height = mPlayerHeight;
-
-                Vector2 newSize = new Vector2(width, height);
-
-                float angle = 0;
-
-                int layerMask = CollisionLayer.value;
-
-                if (!Physics2D.OverlapBox(newPoint, newSize, angle, layerMask))
-                {
-
-                    mPosition.x = newPoint.x;
-                    scale.x = 1;
-                }*/
             }
         }
 
@@ -119,13 +102,6 @@ public class PlayerController : MonoBehaviour
         // Update position
         transform.localPosition = mPosition;
         transform.localScale = scale;
-    }
-
-    void Fall()
-    {
-        mVelocity.y = 0;
-
-        mGrounded = false;
     }
 
     void HandleWallCollision()
@@ -188,22 +164,5 @@ public class PlayerController : MonoBehaviour
         {
             HandleGroundCollisions();
         }
-    }
-
-
-    // Move this to extend the debug class
-    void DrawDebugBox(Vector2 _point, Vector2 _size)
-    {
-        float halfWidth = _size.x / 2f;
-        float halfHeight = _size.y / 2f;
-        Vector3 topLeft = new Vector3(_point.x - halfWidth, _point.y + halfHeight);
-        Vector3 bottomLeft = new Vector3(_point.x - halfWidth, _point.y - halfHeight);
-        Vector3 topRight = new Vector3(_point.x + halfWidth, _point.y + halfHeight);
-        Vector3 bottomRight = new Vector3(_point.x + halfWidth, _point.y - halfHeight);
-
-        Debug.DrawLine(topLeft, topRight, Color.green);
-        Debug.DrawLine(topRight, bottomRight, Color.green);
-        Debug.DrawLine(bottomRight, bottomLeft, Color.green);
-        Debug.DrawLine(bottomLeft, topLeft, Color.green);
     }
 }
