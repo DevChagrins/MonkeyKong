@@ -106,9 +106,6 @@ public class PlayerController : MonoBehaviour
 
     void HandleWallCollision()
     {
-        Vector2 midWalkPoint = new Vector2(mPosition.x + (mDeltaVelocity.x / 2f), mPosition.y);
-        Vector2 boxSize = new Vector2(Mathf.Abs(mDeltaVelocity.x) + mPlayerSize.x, mPlayerSize.y);
-
         Vector2 direction = new Vector2(mDeltaVelocity.x > 0f ? 1f : -1f, 0f);
         RaycastHit2D[] collisionResults = new RaycastHit2D[5];
         int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mPlayerSize, 0f, direction, collisionResults, mDeltaVelocity.x, CollisionLayer);
