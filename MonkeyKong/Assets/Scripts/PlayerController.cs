@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UDebug;
 
 public class PlayerController : MonoBehaviour
 {
@@ -9,7 +10,6 @@ public class PlayerController : MonoBehaviour
     public float Gravity = 9.8f;
     public LayerMask CollisionLayer;
 
-    Rigidbody2D mRigidBody = null;
     bool mWalking, mWalkingLeft, mWalkingRight, mJump;
 
     Vector3 mPosition;
@@ -23,8 +23,6 @@ public class PlayerController : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        mRigidBody = GetComponent<Rigidbody2D>();
-
         mPlayerSize = new Vector2();
         mPlayerSize.y = GetComponent<SpriteRenderer>().bounds.size.y;
         mPlayerSize.x = GetComponent<SpriteRenderer>().bounds.size.x;
@@ -32,8 +30,6 @@ public class PlayerController : MonoBehaviour
         mHalfPlayerSize = new Vector2();
         mHalfPlayerSize.y = mPlayerSize.y / 2f;
         mHalfPlayerSize.x = mPlayerSize.x / 2f;
-
-        Fall();
     }
 
     // Update is called once per frame
@@ -61,8 +57,10 @@ public class PlayerController : MonoBehaviour
         mPosition = transform.localPosition;
         Vector3 scale = transform.localScale;
 
+        // Reset x movement so it'll zero out if we don't need it
         mVelocity.x = 0f;
 
+        // Handle walking left/right
         if (mWalking)
         {
             if (mWalkingLeft)
@@ -75,24 +73,6 @@ public class PlayerController : MonoBehaviour
             {
                 mVelocity.x = MoveSpeed;
                 scale.x = 1;
-
-                /*Vector2 newPoint = new Vector2(mPosition.x + MoveSpeed * Time.deltaTime, mPosition.y);
-
-                float width = newPoint.x - mPosition.x + mPlayerWidth;
-                float height = mPlayerHeight;
-
-                Vector2 newSize = new Vector2(width, height);
-
-                float angle = 0;
-
-                int layerMask = CollisionLayer.value;
-
-                if (!Physics2D.OverlapBox(newPoint, newSize, angle, layerMask))
-                {
-
-                    mPosition.x = newPoint.x;
-                    scale.x = 1;
-                }*/
             }
         }
 
@@ -124,52 +104,28 @@ public class PlayerController : MonoBehaviour
         transform.localScale = scale;
     }
 
-    void Fall()
-    {
-        mVelocity.y = 0;
-
-        mGrounded = false;
-    }
-
     void HandleWallCollision()
     {
         Vector2 midWalkPoint = new Vector2(mPosition.x + (mDeltaVelocity.x / 2f), mPosition.y);
         Vector2 boxSize = new Vector2(Mathf.Abs(mDeltaVelocity.x) + mPlayerSize.x, mPlayerSize.y);
 
-        DrawDebugBox(midWalkPoint, boxSize);
-
-        //Collider2D collisions = Physics2D.OverlapBox(midWalkPoint, boxSize, 0f, CollisionLayer);
-
         Vector2 direction = new Vector2(mDeltaVelocity.x > 0f ? 1f : -1f, 0f);
-        //RaycastHit2D[] collisionResults = new RaycastHit2D[5];
-        //int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mPlayerSize, 0f, direction, collisionResults, mVelocity.x, CollisionLayer);
+        RaycastHit2D[] collisionResults = new RaycastHit2D[5];
+        int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mPlayerSize, 0f, direction, collisionResults, mDeltaVelocity.x, CollisionLayer);
 
-        RaycastHit2D[] collisionResults = Physics2D.BoxCastAll(mPosition, mPlayerSize, 0f, direction, mDeltaVelocity.x, CollisionLayer);
-        if (collisionResults.Length > 0)
+        if (collisionCount > 0)
         {
-            Debug.Log(collisionResults.Length);
-            for(int index = 0; index < collisionResults.Length; index++)
+            for(int index = 0; index < collisionCount; index++)
             {
                 float yDistance = collisionResults[index].point.y - mPosition.y;
                 float xSign = collisionResults[index].point.x < mPosition.x ? -1 : 1;
                 if ((Mathf.Abs(yDistance) < (mHalfPlayerSize.y - 0.0001f)) && (xSign == direction.x))
                 {
-                    Debug.Log("WALL COLLISIONS!");
                     mDeltaVelocity.x = mVelocity.x = 0f;
                     mPosition.x = collisionResults[index].point.x - (mHalfPlayerSize.x * direction.x);
                     break;
                 }
             }
-            /*if (mVelocity.x != 0f)
-            {
-                Debug.Log("Size: " + mPlayerSize.x + ", " + mPlayerSize.y);
-                Debug.Log("Point: " + collisions.point.x + ", " + collisions.point.y);
-                //Debug.Log(collisions.point);
-                mVelocity.x = 0f;
-                mPosition.x = collisions.point.x + (mHalfPlayerSize.x * direction.x);
-                //mPosition.x = collisions.bounds.ClosestPoint(mPosition).x + (mPlayerWidth / 2f);
-                //Debug.Log(collisions.bounds.ClosestPoint(mPosition).y);
-            }*/
         }
     }
 
@@ -208,22 +164,5 @@ public class PlayerController : MonoBehaviour
         {
             HandleGroundCollisions();
         }
-    }
-
-
-    // Move this to extend the debug class
-    void DrawDebugBox(Vector2 _point, Vector2 _size)
-    {
-        float halfWidth = _size.x / 2f;
-        float halfHeight = _size.y / 2f;
-        Vector3 topLeft = new Vector3(_point.x - halfWidth, _point.y + halfHeight);
-        Vector3 bottomLeft = new Vector3(_point.x - halfWidth, _point.y - halfHeight);
-        Vector3 topRight = new Vector3(_point.x + halfWidth, _point.y + halfHeight);
-        Vector3 bottomRight = new Vector3(_point.x + halfWidth, _point.y - halfHeight);
-
-        Debug.DrawLine(topLeft, topRight, Color.green);
-        Debug.DrawLine(topRight, bottomRight, Color.green);
-        Debug.DrawLine(bottomRight, bottomLeft, Color.green);
-        Debug.DrawLine(bottomLeft, topLeft, Color.green);
     }
 }
