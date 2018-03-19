@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class EnemySideWalkLoop : MonoBehaviour {
+public class EnemySideWalkLoop : ObjectController {
 
 	public float moveSpeed = 5f;
 	public bool doesMove = true;
@@ -31,10 +31,14 @@ public class EnemySideWalkLoop : MonoBehaviour {
 		// Starts from the current position
 		Vector3 pos = transform.localPosition;
 
+//		if (HandleWallCollision ()) {
+//
+//		}
+
 		if (this.walkDirection == "left") {
 			pos = new Vector2 (pos.x - this.moveSpeed * Time.deltaTime, pos.y);
 		} else {
-			// DOIJFASOIDJFASODFASODJFASDF
+			
 		}
 	}
 }
