@@ -99,37 +99,49 @@ public class ObjectController : MonoBehaviour
 		mGrounded = false;
 	}
 
-	void HandleWallCollision()
+    bool HandleWallCollision(out RaycastHit2D _collisionResult)
 	{
-		Vector2 midWalkPoint = new Vector2(mPosition.x + (mDeltaVelocity.x / 2f), mPosition.y);
+        bool collided = false;
+
+        Vector2 midWalkPoint = new Vector2(mPosition.x + (mDeltaVelocity.x / 2f), mPosition.y);
 		Vector2 boxSize = new Vector2(Mathf.Abs(mDeltaVelocity.x) + mObjectSize.x, mObjectSize.y);
 
 		Vector2 direction = new Vector2(mDeltaVelocity.x > 0f ? 1f : -1f, 0f);
 
-		// Array of objects that would be collided with
-		RaycastHit2D[] collisionResults = Physics2D.BoxCastAll(mPosition, mObjectSize, 0f, direction, mDeltaVelocity.x, CollisionLayer);
+        // Array of objects that would be collided with
+        RaycastHit2D[] collisionResults = new RaycastHit2D[5];
+        int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mObjectSize, 0f, direction, collisionResults, mDeltaVelocity.x, CollisionLayer);
 
-		if (collisionResults.Length > 0)
+		for(int index = 0; index < collisionCount; index++)
 		{
-			for(int index = 0; index < collisionResults.Length; index++)
+			float yDistance = collisionResults[index].point.y - mPosition.y;
+			float xSign = collisionResults[index].point.x < mPosition.x ? -1 : 1;
+
+			// Does the object actually matter
+			if ((Mathf.Abs(yDistance) < (mHalfObjectSize.y - 0.0001f)) && (xSign == direction.x))
 			{
-				float yDistance = collisionResults[index].point.y - mPosition.y;
-				float xSign = collisionResults[index].point.x < mPosition.x ? -1 : 1;
-
-				// Does the object actually matter
-				if ((Mathf.Abs(yDistance) < (mHalfObjectSize.y - 0.0001f)) && (xSign == direction.x))
-				{
-					// Quit moving and set yourself as close to the wall as possible
-
-					mDeltaVelocity.x = mVelocity.x = 0f;
-					mPosition.x = collisionResults[index].point.x - (mHalfObjectSize.x * direction.x);
-					break;
-				}
+				// Quit moving and set yourself as close to the wall as possible
+				mDeltaVelocity.x = mVelocity.x = 0f;
+				mPosition.x = collisionResults[index].point.x - (mHalfObjectSize.x * direction.x);
+                _collisionResult = collisionResults[index];
+                collided = true;
+                break;
 			}
 		}
+
+        _collisionResult = new RaycastHit2D();
+
+        return collided;
 	}
 
-	void HandleGroundCollisions()
+    bool HandleWallCollision()
+    {
+        RaycastHit2D garbage;
+        return HandleWallCollision(out garbage);
+    }
+
+
+    void HandleGroundCollisions()
 	{
 		Vector2 velocity;
 		velocity.y = mVelocity.y < 0f ? mDeltaVelocity.y : -mObjectSize.y;
