@@ -12,19 +12,21 @@ public class PlayerController : MonoBehaviour
     Rigidbody2D mRigidBody = null;
     bool mWalking, mWalkingLeft, mWalkingRight, mJump;
 
-    private float mWidth, mHeight;
-    private Vector3 mPosition;
-    private Vector2 mVelocity;
-    private Vector2 mDeltaVelocity;
-    private bool mGrounded;
+    Vector3 mPosition;
+    Vector2 mVelocity;
+    Vector2 mDeltaVelocity;
+    bool mGrounded;
+    float mPlayerHeight;
+	float mPlayerWidth;
 
     // Use this for initialization
     void Start()
     {
         mRigidBody = GetComponent<Rigidbody2D>();
-        mWidth = GetComponent<SpriteRenderer>().bounds.size.x;
-        mHeight = GetComponent<SpriteRenderer>().bounds.size.y;
 
+		mPlayerHeight = GetComponent<SpriteRenderer> ().bounds.size.y;
+		mPlayerWidth = GetComponent<SpriteRenderer> ().bounds.size.x;
+        
         Fall();
     }
 
@@ -59,14 +61,44 @@ public class PlayerController : MonoBehaviour
         {
             if (mWalkingLeft)
             {
-                mVelocity.x -= MoveSpeed;
-                scale.x = -1;
+				
+				Vector2 newPoint = new Vector2 (pos.x - MoveSpeed * Time.deltaTime, pos.y);
+
+				float width = newPoint.x - pos.x + playerWidth;
+				float height = playerHeight;
+
+				Vector2 newSize = new Vector2 (width, height);
+
+				float angle = 0;
+
+				int layerMask = CollisionLayer.value;
+
+				if (!Physics2D.OverlapBox(newPoint, newSize, angle, layerMask)) {
+					
+					pos.x = newPoint.x;
+					scale.x = -1;
+				}
             }
 
             if (mWalkingRight)
             {
-                mVelocity.x += MoveSpeed;
-                scale.x = 1;
+                
+				Vector2 newPoint = new Vector2 (pos.x + MoveSpeed * Time.deltaTime, pos.y);
+
+				float width = newPoint.x - pos.x + playerWidth;
+				float height = playerHeight;
+
+				Vector2 newSize = new Vector2 (width, height);
+
+				float angle = 0;
+
+				int layerMask = CollisionLayer.value;
+
+				if (!Physics2D.OverlapBox(newPoint, newSize, angle, layerMask)) {
+
+					pos.x = newPoint.x;
+					scale.x = 1;
+				}
             }
         }
 
