@@ -24,8 +24,8 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         mPlayerSize = new Vector2();
-        mPlayerSize.y = GetComponent<SpriteRenderer>().bounds.size.y;
-        mPlayerSize.x = GetComponent<SpriteRenderer>().bounds.size.x;
+        mPlayerSize.y = GetComponent<BoxCollider2D>().bounds.size.y;
+        mPlayerSize.x = GetComponent<BoxCollider2D>().bounds.size.x;
 
         mHalfPlayerSize = new Vector2();
         mHalfPlayerSize.y = mPlayerSize.y / 2f;
@@ -108,7 +108,7 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 direction = new Vector2(mDeltaVelocity.x > 0f ? 1f : -1f, 0f);
         RaycastHit2D[] collisionResults = new RaycastHit2D[5];
-        int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mPlayerSize, 0f, direction, collisionResults, mDeltaVelocity.x, CollisionLayer);
+        int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mPlayerSize, 0f, direction, collisionResults, Mathf.Abs(mDeltaVelocity.x), CollisionLayer);
 
         if (collisionCount > 0)
         {
@@ -128,21 +128,34 @@ public class PlayerController : MonoBehaviour
 
     void HandleGroundCollisions()
     {
-        Vector2 velocity;
-        velocity.y = mVelocity.y < 0f ? mDeltaVelocity.y : -mPlayerSize.y;
+        float ySpeed = mVelocity.y < 0f ? mDeltaVelocity.y : -0.02f;
+        Vector2 direction = new Vector2(0f, mDeltaVelocity.y > 0f ? 1f : -1f);
 
-        Vector2 midFallPoint = new Vector2(mPosition.x, mPosition.y + (velocity.y / 2f));
-        Vector2 boxSize = new Vector2(mPlayerSize.x, Mathf.Abs(velocity.y) + mPlayerSize.y);
+        RaycastHit2D[] collisionResults = new RaycastHit2D[5];
+        int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mPlayerSize, 0f, direction, collisionResults, Mathf.Abs(ySpeed), CollisionLayer);
 
-        Collider2D collisions = Physics2D.OverlapBox(midFallPoint, boxSize, 0f, CollisionLayer);
-
-        if (collisions)
+        bool collisionHappened = false;
+        if (collisionCount > 0)
         {
+            RaycastHit2D collision;
             mGrounded = true;
-            if (mVelocity.y < 0f)
+            for (int index = 0; index < collisionCount; index++)
             {
-                mVelocity.y = 0f;
-                mPosition.y = collisions.bounds.ClosestPoint(mPosition).y + mHalfPlayerSize.y;
+                collision = collisionResults[index];
+                float xDistance = collision.point.x - mPosition.x;
+                float ySign = collision.point.x < mPosition.x ? -1 : 1;
+                if (Mathf.Abs(xDistance) < (mHalfPlayerSize.x - 0.0001f))
+                {
+                    collisionHappened = mGrounded = true;
+                    mDeltaVelocity.y = mVelocity.y = 0f;
+                    mPosition.y = collision.collider.bounds.max.y + mHalfPlayerSize.y;
+                    break;
+                }
+            }
+
+            if((false == collisionHappened) && (mVelocity.y < 0f))
+            {
+                mGrounded = false;
             }
         }
         else
