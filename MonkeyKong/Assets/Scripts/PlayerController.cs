@@ -1,10 +1,19 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UDebug;
+using MonkeyKongExtensions.Debug;
+using MonkeyKongExtensions.Math;
 
 public class PlayerController : MonoBehaviour
 {
+    public enum PlayerState
+    {
+        STILL = 0,
+        WALKING = 1,
+        FALLING = 2,
+        WALL_JUMPING = 4
+    };
+
     public float MoveSpeed = 5f;
     public float JumpSpeed = 5f;
     public float Gravity = 9.8f;
@@ -20,6 +29,10 @@ public class PlayerController : MonoBehaviour
     Vector2 mPlayerSize;
     Vector2 mHalfPlayerSize;
 
+    Animator mAnimator;
+
+    PlayerState mPlayerState = PlayerState.STILL;
+
     // Use this for initialization
     void Start()
     {
@@ -30,6 +43,8 @@ public class PlayerController : MonoBehaviour
         mHalfPlayerSize = new Vector2();
         mHalfPlayerSize.y = mPlayerSize.y / 2f;
         mHalfPlayerSize.x = mPlayerSize.x / 2f;
+
+        mAnimator = GetComponent<Animator>();
     }
 
     // Update is called once per frame
@@ -57,9 +72,6 @@ public class PlayerController : MonoBehaviour
         mPosition = transform.localPosition;
         Vector3 scale = transform.localScale;
 
-        // Reset x movement so it'll zero out if we don't need it
-        mVelocity.x = 0f;
-
         // Handle walking left/right
         if (mWalking)
         {
@@ -74,6 +86,10 @@ public class PlayerController : MonoBehaviour
                 mVelocity.x = MoveSpeed;
                 scale.x = 1;
             }
+        }
+        else
+        {
+            mVelocity.x = 0f;
         }
 
         mDeltaVelocity.x = mVelocity.x * Time.deltaTime;
@@ -102,6 +118,27 @@ public class PlayerController : MonoBehaviour
         // Update position
         transform.localPosition = mPosition;
         transform.localScale = scale;
+
+        if (mPlayerState != PlayerState.WALL_JUMPING)
+        {
+            if (mGrounded)
+            {
+                if(mWalking)
+                {
+                    mPlayerState = PlayerState.WALKING;
+                }
+                else
+                {
+                    mPlayerState = PlayerState.STILL;
+                }
+            }
+            else
+            {
+                mPlayerState = PlayerState.FALLING;
+            }
+        }
+
+        mAnimator.SetInteger("State", (int)mPlayerState);
     }
 
     void HandleWallCollision()
@@ -119,7 +156,7 @@ public class PlayerController : MonoBehaviour
                 if ((Mathf.Abs(yDistance) < (mHalfPlayerSize.y - 0.0001f)) && (xSign == direction.x))
                 {
                     mDeltaVelocity.x = mVelocity.x = 0f;
-                    mPosition.x = collisionResults[index].point.x - (mHalfPlayerSize.x * direction.x);
+                    mPosition.x = MathFloat.Round(collisionResults[index].point.x - (mHalfPlayerSize.x * direction.x), 2);
                     break;
                 }
             }
@@ -148,7 +185,7 @@ public class PlayerController : MonoBehaviour
                 {
                     collisionHappened = mGrounded = true;
                     mDeltaVelocity.y = mVelocity.y = 0f;
-                    mPosition.y = collision.collider.bounds.max.y + mHalfPlayerSize.y;
+                    mPosition.y = MathFloat.Round(collision.collider.bounds.max.y + mHalfPlayerSize.y, 2);
                     break;
                 }
             }
