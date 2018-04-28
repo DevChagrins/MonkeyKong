@@ -1,0 +1,1 @@
+Research wall slide/wall jump mechanics from Megaman X.
