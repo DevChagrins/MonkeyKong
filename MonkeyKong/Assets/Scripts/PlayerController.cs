@@ -11,15 +11,25 @@ public class PlayerController : MonoBehaviour
         STILL = 0,
         WALKING = 1,
         FALLING = 2,
-        WALL_JUMPING = 4
+        WALL_JUMPING = 4,
+        WALL_SLIDING = 8,
     };
 
     public float MoveSpeed = 5f;
     public float JumpSpeed = 5f;
+    public float WallJumpSpeed = 5f;
+    public float HrJumpSpeed = 5f;
+    public float JumpTime = 0.5f;
+    public float WallJumpTime = 0.5f;
     public float Gravity = 9.8f;
+    public float WallSlideSpeed = 3f;
     public LayerMask CollisionLayer;
 
-    bool mWalking, mWalkingLeft, mWalkingRight, mJump;
+    bool mWalking, mWalkingLeft, mWalkingRight, mJump, mWallCollision;
+
+    int mWallDirection = 0;
+    float mJumpTimer = -0f;
+    float mWallJumpTimer = -0f;
 
     Vector3 mPosition;
     Vector2 mVelocity;
@@ -31,6 +41,7 @@ public class PlayerController : MonoBehaviour
 
     Animator mAnimator;
 
+    PlayerState mPreviousState = PlayerState.STILL;
     PlayerState mPlayerState = PlayerState.STILL;
 
     // Use this for initialization
@@ -73,21 +84,21 @@ public class PlayerController : MonoBehaviour
         Vector3 scale = transform.localScale;
 
         // Handle walking left/right
-        if (mWalking)
+        if (mWalking && (mPlayerState != PlayerState.WALL_JUMPING))
         {
             if (mWalkingLeft)
             {
-                mVelocity.x = -MoveSpeed;
+                mVelocity.x += -MoveSpeed;
 				scale.x = -1;
             }
 
             if (mWalkingRight)
             {
-                mVelocity.x = MoveSpeed;
+                mVelocity.x += MoveSpeed;
                 scale.x = 1;
             }
         }
-        else
+        else if(mGrounded)
         {
             mVelocity.x = 0f;
         }
@@ -95,16 +106,39 @@ public class PlayerController : MonoBehaviour
         mDeltaVelocity.x = mVelocity.x * Time.deltaTime;
         HandleWallCollision();
 
-        mPosition.x += mDeltaVelocity.x;
-
         // Handle jumping and falling
         CheckTopBottomCollisions();
+
+        if ((mPlayerState == PlayerState.WALL_SLIDING) && (mPreviousState != PlayerState.WALL_SLIDING))
+        {
+            mVelocity.y = 0f;
+        }
 
         if (mJump && mGrounded)
         {
             mVelocity.y += JumpSpeed;
             mGrounded = false;
+            mJumpTimer = JumpTime;
         }
+        else if(mJump && (mPlayerState == PlayerState.WALL_SLIDING))
+        {
+            mVelocity.y += WallJumpSpeed;
+            mVelocity.x += HrJumpSpeed * (mWallDirection * -1);
+            mWallCollision = false;
+            mPlayerState = PlayerState.WALL_JUMPING;
+            mWallJumpTimer = WallJumpTime;
+        }
+
+        // Cap movement
+        mVelocity.x = Mathf.Max(-MoveSpeed, Mathf.Min(MoveSpeed, mVelocity.x));
+        // Handle this after wall jumping...because i'm too lazy to implement proper systems for a small game like this. :P
+        mDeltaVelocity.x = mVelocity.x * Time.deltaTime;
+        mPosition.x += mDeltaVelocity.x;
+
+        /*if(mPlayerState == PlayerState.WALL_SLIDING)
+        {
+            mVelocity.y += WallJumpSpeed;
+        }*/
 
         mDeltaVelocity.y = mVelocity.y * Time.deltaTime;
 
@@ -112,13 +146,36 @@ public class PlayerController : MonoBehaviour
         {
             mPosition.y += mDeltaVelocity.y;
 
-            mVelocity.y -= Gravity * Time.deltaTime;
+            if(mPlayerState != PlayerState.WALL_SLIDING)
+            {
+                mVelocity.y -= Gravity * Time.deltaTime;
+            }
+            else
+            {
+                mVelocity.y = (-WallSlideSpeed) * Time.deltaTime;
+            }
+        }
+
+        if(mJumpTimer > 0f)
+        {
+            mJumpTimer -= Time.deltaTime;
+        }
+
+        if(mWallJumpTimer > 0f)
+        {
+            mWallJumpTimer -= Time.deltaTime;
+        }
+
+        if(mWallJumpTimer <= 0f && (mPlayerState == PlayerState.WALL_JUMPING))
+        {
+            mPlayerState = PlayerState.FALLING;
         }
 
         // Update position
         transform.localPosition = mPosition;
         transform.localScale = scale;
 
+        mPreviousState = mPlayerState;
         if (mPlayerState != PlayerState.WALL_JUMPING)
         {
             if (mGrounded)
@@ -134,9 +191,18 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
-                mPlayerState = PlayerState.FALLING;
+                if (mWallCollision && mJumpTimer <= 0f)
+                {
+                    mPlayerState = PlayerState.WALL_SLIDING;
+                }
+                else
+                {
+                    mPlayerState = PlayerState.FALLING;
+                }
             }
         }
+
+        Debug.Log("Player State: " + mPlayerState);
 
         mAnimator.SetInteger("State", (int)mPlayerState);
     }
@@ -147,19 +213,28 @@ public class PlayerController : MonoBehaviour
         RaycastHit2D[] collisionResults = new RaycastHit2D[5];
         int collisionCount = Physics2D.BoxCastNonAlloc(mPosition, mPlayerSize, 0f, direction, collisionResults, Mathf.Abs(mDeltaVelocity.x), CollisionLayer);
 
+        bool collisionHappened = false;
         if (collisionCount > 0)
         {
             for(int index = 0; index < collisionCount; index++)
             {
                 float yDistance = collisionResults[index].point.y - mPosition.y;
-                float xSign = collisionResults[index].point.x < mPosition.x ? -1 : 1;
+                float xSign = collisionResults[index].point.x < mPosition.x ? -1f : 1f;
                 if ((Mathf.Abs(yDistance) < (mHalfPlayerSize.y - 0.0001f)) && (xSign == direction.x))
                 {
+                    mWallDirection = (int)xSign;
+
+                    collisionHappened = mWallCollision = true;
                     mDeltaVelocity.x = mVelocity.x = 0f;
                     mPosition.x = MathFloat.Round(collisionResults[index].point.x - (mHalfPlayerSize.x * direction.x), 2);
                     break;
                 }
             }
+        }
+
+        if(!collisionHappened)
+        {
+            mWallCollision = false;
         }
     }
 
@@ -180,7 +255,6 @@ public class PlayerController : MonoBehaviour
             {
                 collision = collisionResults[index];
                 float xDistance = collision.point.x - mPosition.x;
-                float ySign = collision.point.x < mPosition.x ? -1 : 1;
                 if (Mathf.Abs(xDistance) < (mHalfPlayerSize.x - 0.0001f))
                 {
                     collisionHappened = mGrounded = true;
